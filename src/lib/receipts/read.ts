@@ -76,7 +76,21 @@ Rules: numbers not strings. Merchant is the store name, not the address. Place i
         }),
       });
       if (!res.ok) {
-        return { ok: false, error: `The reader couldn't finish (${res.status}). Fill the fields yourself.` };
+        const detail = await errorDetail(res);
+        if (res.status === 403) {
+          return {
+            ok: false,
+            error: detail
+              ? `The reader was refused: ${detail}`
+              : "The reader was refused (403). The key is saved, but this xAI account has no permission or no credits yet. Add the lines yourself, then circle them.",
+          };
+        }
+        return {
+          ok: false,
+          error: detail
+            ? `The reader couldn't finish (${res.status}): ${detail}`
+            : `The reader couldn't finish (${res.status}). Fill the fields yourself.`,
+        };
       }
       const body = (await res.json()) as {
         choices?: { message?: { content?: unknown } }[];
@@ -89,6 +103,17 @@ Rules: numbers not strings. Merchant is the store name, not the address. Place i
       return { ok: false, error: "The reader didn't respond. Fill the fields yourself." };
     }
   });
+
+async function errorDetail(res: Response) {
+  try {
+    const body = (await res.json()) as { error?: { message?: string } | string };
+    const message = typeof body.error === "string" ? body.error : body.error?.message;
+    if (!message) return "";
+    return message.replace(/\s+/g, " ").slice(0, 180);
+  } catch {
+    return "";
+  }
+}
 
 function messageText(content: unknown) {
   if (typeof content === "string") return content;

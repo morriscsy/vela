@@ -61,6 +61,10 @@ export function SlipForm({
     });
   }
 
+  function addLine() {
+    patch({ lineItems: [...draft.lineItems, { name: "", qty: 1, amount: 0, mine: true }] });
+  }
+
   return (
     <form
       className="flex flex-col gap-4"
@@ -87,7 +91,14 @@ export function SlipForm({
           </p>
         </div>
         {draft.lineItems.length === 0 ? (
-          <p className="text-sm text-muted">No lines on this slip. The total is yours.</p>
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm text-muted">
+              No lines yet, so there is nothing to tap. Add each dish you had, then tap its ring. Leave this empty and the whole total is yours.
+            </p>
+            <Btn type="button" onClick={addLine}>
+              Add a line
+            </Btn>
+          </div>
         ) : circledCount === 0 ? (
           <p className="rounded-md border border-line bg-card px-3 py-2 text-sm text-ink">
             Nothing circled. Confirm keeps the whole {money(share.bill, draft.currency)}.
@@ -125,11 +136,11 @@ export function SlipForm({
                         : "size-7 shrink-0 rounded-full border-2 border-muted/70"
                     }
                   >
-                    {on ? "✓" : ""}
+                    {on ? "\u2713" : ""}
                   </span>
                   <span className={on ? "min-w-0 flex-1 truncate text-sm font-medium" : "min-w-0 flex-1 truncate text-sm text-muted"}>
                     {item.name || "Untitled line"}
-                    {item.qty > 1 ? ` × ${item.qty}` : ""}
+                    {item.qty > 1 ? ` \u00d7 ${item.qty}` : ""}
                   </span>
                   <span className="font-mono text-sm tabular-nums">{money(item.amount, draft.currency)}</span>
                 </button>
@@ -287,7 +298,7 @@ export function SlipForm({
         <button
           type="button"
           className="self-start text-sm font-semibold text-cyan"
-          onClick={() => patch({ lineItems: [...draft.lineItems, { name: "", qty: 1, amount: 0, mine: true }] })}
+          onClick={addLine}
         >
           Add a line
         </button>
