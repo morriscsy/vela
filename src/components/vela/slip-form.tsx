@@ -136,11 +136,11 @@ export function SlipForm({
                         : "size-7 shrink-0 rounded-full border-2 border-muted/70"
                     }
                   >
-                    {on ? "\u2713" : ""}
+                    {on ? "✓" : ""}
                   </span>
                   <span className={on ? "min-w-0 flex-1 truncate text-sm font-medium" : "min-w-0 flex-1 truncate text-sm text-muted"}>
                     {item.name || "Untitled line"}
-                    {item.qty > 1 ? ` \u00d7 ${item.qty}` : ""}
+                    {item.qty > 1 ? ` × ${item.qty}` : ""}
                   </span>
                   <span className="font-mono text-sm tabular-nums">{money(item.amount, draft.currency)}</span>
                 </button>
