@@ -157,19 +157,22 @@ export function Scan() {
 
   if (stage.kind === "camera") {
     return (
-      <div className="mx-auto flex max-w-lg flex-col gap-4">
+      <div className="mx-auto flex max-w-lg flex-col gap-3 pb-28">
         <h1 className="text-2xl font-semibold tracking-tight">Frame the slip</h1>
         <div className="scan-stage">
-          <video ref={videoRef} playsInline muted className="max-h-[480px] w-full bg-bg object-contain" />
+          <video ref={videoRef} playsInline muted autoPlay className="max-h-[46vh] w-full bg-bg object-cover md:max-h-[480px] md:object-contain" />
           <span className="corner corner-tl" />
           <span className="corner corner-tr" />
           <span className="corner corner-bl" />
           <span className="corner corner-br" />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Btn onClick={() => void captureFrame()}>Capture</Btn>
+        <div className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-30 flex gap-2 px-4 md:static md:px-0">
+          <Btn className="h-14 flex-1 text-base" onClick={() => void captureFrame()}>
+            Capture
+          </Btn>
           <Btn
             variant="ghost"
+            className="h-14 min-w-28 text-base"
             onClick={() => {
               stopCamera();
               setStage({ kind: "idle" });
@@ -189,12 +192,12 @@ export function Scan() {
         <div>
           <Eyebrow>Confirm</Eyebrow>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">Check the slip</h1>
-          <p className="mt-2 text-sm text-muted">Nothing is filed until you say so. The photo stays in this browser.</p>
+          <p className="mt-2 text-sm text-muted">Circle the lines that are yours, then file. Nothing is saved until you say so.</p>
           {stage.draft.image ? (
             <img
               src={stage.draft.image}
               alt={stage.draft.merchant ? `Receipt from ${stage.draft.merchant}` : "Receipt photo"}
-              className="mt-4 max-h-80 w-full rounded-xl border border-line object-contain"
+              className="mt-4 max-h-52 w-full rounded-xl border border-line object-contain md:max-h-80"
             />
           ) : null}
         </div>
@@ -219,15 +222,18 @@ export function Scan() {
   }
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-5">
+    <div className="mx-auto flex max-w-xl flex-col gap-4">
       <div>
         <Eyebrow>Scan</Eyebrow>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">Point at a slip</h1>
         <p className="mt-2 max-w-lg text-sm text-muted">
-          The reader pulls the merchant, date, tax, service, and lines. You confirm the total, then it lands in a drawer.
-          Photos are sent once to be read, then kept only in this browser.
+          Take the photo, then circle the lines that are yours. Nothing is filed until you confirm.
         </p>
       </div>
+      <Btn className="h-16 w-full text-base" onClick={() => void startCamera()}>
+        <Camera className="size-6" />
+        Use camera
+      </Btn>
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
@@ -236,10 +242,10 @@ export function Scan() {
           event.preventDefault();
           void onFile(event.dataTransfer.files?.[0]);
         }}
-        className="flex min-h-52 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-line bg-card px-6 py-10 text-center"
+        className="flex min-h-28 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line bg-card px-6 py-6 text-center"
       >
         <ImagePlus className="size-6 text-cyan" />
-        <span className="font-semibold">Drop a photo, or choose one</span>
+        <span className="font-semibold">Or choose a photo</span>
         <span className="text-sm text-muted">JPEG or PNG. A full slip in frame reads best.</span>
       </button>
       <input
@@ -254,10 +260,6 @@ export function Scan() {
       />
       {error ? <p className="text-sm text-amber-soft">{error}</p> : null}
       <div className="flex flex-wrap gap-2">
-        <Btn onClick={() => void startCamera()}>
-          <Camera className="size-4" />
-          Use camera
-        </Btn>
         <Btn variant="ghost" onClick={() => void readPractice()} disabled={busy}>
           Read a practice slip
         </Btn>

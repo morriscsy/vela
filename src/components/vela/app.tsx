@@ -94,13 +94,11 @@ export function VelaApp() {
       </header>
 
       <main className="mx-auto w-full max-w-5xl px-4 pt-6 pb-28 md:px-6 md:pb-16">
-        {!ready ? (
-          <p className="text-sm text-muted">Opening your desk…</p>
-        ) : view === "desk" ? (
+        {view === "desk" ? (
           <Desk />
         ) : view === "library" ? (
           <SlipLibrary />
-                ) : view === "scan" ? (
+        ) : view === "scan" ? (
           <Scan />
         ) : (
           <Slip key={activeId ?? "slip"} />

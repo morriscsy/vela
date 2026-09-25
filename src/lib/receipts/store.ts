@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { merchantKey, receiptFromDraft, type Draft, type DrawerId, type Receipt, type Rule, type SlipStatus } from "@/lib/receipts/model";
+import { merchantKey, receiptFromDraft, currentMonth, type Draft, type DrawerId, type Receipt, type Rule, type SlipStatus } from "@/lib/receipts/model";
 import { deleteReceipt, deleteSamples, loadDesk, putReceipt, putRule } from "@/lib/receipts/persist";
 
 export type ViewId = "desk" | "library" | "scan" | "slip";
@@ -7,6 +7,7 @@ export type StatusFilter = "all" | "review" | "filed";
 
 type DeskState = {
   ready: boolean;
+  settled: boolean;
   receipts: Receipt[];
   rules: Rule[];
   view: ViewId;
@@ -47,6 +48,7 @@ function claimTeamDinner(receipts: Receipt[]) {
 
 export const useDesk = create<DeskState>((set, get) => ({
   ready: false,
+  settled: false,
   receipts: [],
   rules: [],
   view: "desk",
@@ -54,10 +56,13 @@ export const useDesk = create<DeskState>((set, get) => ({
   query: "",
   drawerFilter: "all",
   statusFilter: "all",
-  month: "",
+  month: currentMonth(),
   load: () => {
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    if (!get().ready) set({ ready: true, month: get().month || month });
     if (typeof indexedDB === "undefined") {
-      set({ ready: true });
+      set({ settled: true });
       return Promise.resolve();
     }
     if (!loading) {
@@ -67,9 +72,7 @@ export const useDesk = create<DeskState>((set, get) => ({
         await Promise.all(
           receipts.filter((receipt, index) => receipt !== loaded.receipts[index]).map((receipt) => putReceipt(receipt)),
         );
-        const now = new Date();
-        const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-        set({ receipts, rules: loaded.rules, ready: true, month: get().month || month });
+        set({ receipts, rules: loaded.rules, ready: true, settled: true, month: get().month || month });
       })().finally(() => {
         loading = null;
       });

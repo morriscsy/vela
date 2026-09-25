@@ -34,7 +34,7 @@ export type PaymentId = (typeof PAYMENTS)[number]["id"];
 export type SlipStatus = "review" | "filed";
 export type Origin = "sample" | "scan" | "manual";
 
-export type LineItem = { name: string; qty: number; amount: number; mine?: boolean };
+export type LineItem = { name: string; qty: number; amount: number; mine?: boolean; circled?: boolean };
 
 export type Receipt = {
   id: string;
@@ -246,17 +246,36 @@ export function itemIsMine(item: LineItem) {
   return item.mine !== false;
 }
 
+/** True once the person has drawn at least one circle. No circles means the whole slip is theirs. */
+export function circlesChosen(items: LineItem[]) {
+  return items.some((item) => item.circled === true);
+}
+
+/** How a line should look. No circles yet means nothing is drawn, unless a saved slip already left some lines off. */
+export function lineIsCircled(item: LineItem, items: LineItem[]) {
+  if (items.some((line) => line.circled === true)) return item.circled === true;
+  const settled = items.length > 0 && items.every((line) => line.circled === true || line.circled === false);
+  if (settled) return false;
+  if (items.some((line) => line.mine === false)) return item.mine !== false;
+  return false;
+}
+
+export function itemCounts(item: LineItem, items: LineItem[]) {
+  if (circlesChosen(items)) return item.circled === true;
+  return item.mine !== false;
+}
+
 type Bill = { lineItems: LineItem[]; subtotal: number; tax: number; tip: number; total: number };
 
-/** Full bill stays on the slip. Budget figures use only lines marked mine, with tax and service in the same proportion. */
+/** Full bill stays on the slip. A circle marks your lines. Confirm with none circled and the whole slip is budgeted. */
 export function yourShare(bill: Bill) {
   const items = bill.lineItems;
   const billTotal = Number(bill.total) || 0;
-  if (items.length === 0 || items.every(itemIsMine)) {
+  if (items.length === 0 || items.every((item) => itemCounts(item, items))) {
     return { yours: billTotal, bill: billTotal, split: false };
   }
   const base = lineSum(items) || Number(bill.subtotal) || billTotal;
-  const mine = lineSum(items.filter(itemIsMine));
+  const mine = lineSum(items.filter((item) => itemCounts(item, items)));
   const ratio = base > 0 ? mine / base : 0;
   const extras = (Number(bill.tax) || 0) + (Number(bill.tip) || 0);
   return {
@@ -270,7 +289,7 @@ export function yourExtras(bill: Bill) {
   const extras = (Number(bill.tax) || 0) + (Number(bill.tip) || 0);
   if (!yourShare(bill).split) return Math.round(extras * 100) / 100;
   const base = lineSum(bill.lineItems) || Number(bill.subtotal) || Number(bill.total) || 0;
-  const mine = lineSum(bill.lineItems.filter(itemIsMine));
+  const mine = lineSum(bill.lineItems.filter((item) => itemCounts(item, bill.lineItems)));
   const ratio = base > 0 ? mine / base : 0;
   return Math.round(extras * ratio * 100) / 100;
 }
@@ -330,14 +349,15 @@ export function draftFromReceipt(r: Receipt): Draft {
 }
 
 export function receiptFromDraft(draft: Draft, status: SlipStatus, id: string, previous?: Receipt): Receipt {
-  const items = draft.lineItems
-    .filter((item) => item.name.trim() || item.amount)
-    .map((item) => ({
-      name: item.name.trim() || "Item",
-      qty: Number.isFinite(item.qty) && item.qty > 0 ? item.qty : 1,
-      amount: Number(item.amount) || 0,
-      mine: item.mine !== false,
-    }));
+  const kept = draft.lineItems.filter((item) => item.name.trim() || item.amount);
+  const chosen = kept.some((item) => item.circled === true);
+  const items = kept.map((item) => ({
+    name: item.name.trim() || "Item",
+    qty: Number.isFinite(item.qty) && item.qty > 0 ? item.qty : 1,
+    amount: Number(item.amount) || 0,
+    mine: chosen ? item.circled === true : item.mine !== false,
+    ...(item.circled === true || item.circled === false ? { circled: item.circled === true } : {}),
+  }));
   return {
     id,
     image: draft.image,

@@ -6,7 +6,7 @@ import {
   CURRENCIES,
   DRAWERS,
   guessCategory,
-  itemIsMine,
+  lineIsCircled,
   lineSum,
   money,
   PAYMENTS,
@@ -41,10 +41,24 @@ export function SlipForm({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const summed = lineSum(draft.lineItems);
   const share = yourShare(draft);
+  const circledCount = draft.lineItems.filter((item) => lineIsCircled(item, draft.lineItems)).length;
   const canSave = draft.merchant.trim().length > 0 && Number(draft.total) > 0;
 
   function patch(partial: Partial<Draft>) {
     onChange({ ...draft, ...partial });
+  }
+
+  function toggleCircle(index: number) {
+    const marks = draft.lineItems.map((item) => lineIsCircled(item, draft.lineItems));
+    marks[index] = !marks[index];
+    const any = marks.some(Boolean);
+    patch({
+      lineItems: draft.lineItems.map((item, i) => ({
+        ...item,
+        circled: marks[i],
+        mine: any ? marks[i] : true,
+      })),
+    });
   }
 
   return (
@@ -64,6 +78,66 @@ export function SlipForm({
           Reader confidence {Math.round(draft.confidence * 100)}%
         </p>
       ) : null}
+
+      <section className="flex flex-col gap-3 rounded-xl border border-line bg-bg/60 p-3">
+        <div>
+          <p className="text-sm font-semibold">Circle what you had</p>
+          <p className="mt-1 text-xs text-muted">
+            Tap a line to draw a ring around it. Confirm with nothing circled and the whole slip is budgeted.
+          </p>
+        </div>
+        {draft.lineItems.length === 0 ? (
+          <p className="text-sm text-muted">No lines on this slip. The total is yours.</p>
+        ) : circledCount === 0 ? (
+          <p className="rounded-md border border-line bg-card px-3 py-2 text-sm text-ink">
+            Nothing circled. Confirm keeps the whole {money(share.bill, draft.currency)}.
+          </p>
+        ) : share.split ? (
+          <p className="rounded-md border border-cyan/35 bg-cyan/10 px-3 py-2 text-sm text-ink">
+            {circledCount} circled. Your budget is {money(share.yours, draft.currency)} of {money(share.bill, draft.currency)}. Tax and service follow those lines.
+          </p>
+        ) : (
+          <p className="rounded-md border border-cyan/35 bg-cyan/10 px-3 py-2 text-sm text-ink">
+            Every line is circled. The whole {money(share.bill, draft.currency)} is yours.
+          </p>
+        )}
+        <ul className="flex flex-col gap-2">
+          {draft.lineItems.map((item, index) => {
+            const on = lineIsCircled(item, draft.lineItems);
+            return (
+              <li key={index}>
+                <button
+                  type="button"
+                  aria-pressed={on}
+                  aria-label={on ? `Remove the circle from ${item.name || "this line"}` : `Circle ${item.name || "this line"}`}
+                  className={
+                    on
+                      ? "flex min-h-11 w-full items-center gap-3 rounded-full border border-cyan/70 bg-cyan/10 px-3 py-2 text-left shadow-[0_0_0_4px_rgba(34,211,238,0.12)]"
+                      : "flex min-h-11 w-full items-center gap-3 rounded-full border border-dashed border-line px-3 py-2 text-left"
+                  }
+                  onClick={() => toggleCircle(index)}
+                >
+                  <span
+                    aria-hidden
+                    className={
+                      on
+                        ? "grid size-7 shrink-0 place-items-center rounded-full border-2 border-cyan text-[10px] font-bold text-cyan"
+                        : "size-7 shrink-0 rounded-full border-2 border-muted/70"
+                    }
+                  >
+                    {on ? "✓" : ""}
+                  </span>
+                  <span className={on ? "min-w-0 flex-1 truncate text-sm font-medium" : "min-w-0 flex-1 truncate text-sm text-muted"}>
+                    {item.name || "Untitled line"}
+                    {item.qty > 1 ? ` × ${item.qty}` : ""}
+                  </span>
+                  <span className="font-mono text-sm tabular-nums">{money(item.amount, draft.currency)}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Merchant">
@@ -163,36 +237,10 @@ export function SlipForm({
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <p className="text-sm font-semibold">Lines</p>
-          <p className="text-xs text-muted">Leave a colleague’s dish off. The bill stays. Your budget uses the rest.</p>
-        </div>
-        {share.split ? (
-          <p className="rounded-md border border-cyan/35 bg-cyan/10 px-3 py-2 text-sm text-ink">
-            Your budget counts {money(share.yours, draft.currency)} of the {money(share.bill, draft.currency)} bill. Tax and service follow your lines.
-          </p>
-        ) : null}
+        <p className="text-sm font-semibold">Edit lines</p>
         {draft.lineItems.map((item, index) => {
-          const mine = itemIsMine(item);
           return (
-            <div key={index} className="grid grid-cols-1 gap-2 sm:grid-cols-[auto_1fr_4.5rem_6.5rem_2.75rem]">
-              <button
-                type="button"
-                aria-pressed={mine}
-                aria-label={mine ? "This line is yours" : "This line is not yours"}
-                className={
-                  mine
-                    ? "h-11 rounded-sm border border-cyan/50 bg-cyan/15 px-3 text-xs font-semibold text-ink"
-                    : "h-11 rounded-sm border border-line px-3 text-xs font-semibold text-muted line-through"
-                }
-                onClick={() => {
-                  const lineItems = draft.lineItems.slice();
-                  lineItems[index] = { ...item, mine: !mine };
-                  patch({ lineItems });
-                }}
-              >
-                {mine ? "Mine" : "Not mine"}
-              </button>
+            <div key={index} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_4.5rem_6.5rem_2.75rem]">
               <input
                 aria-label="Line name"
                 className={controlClass}

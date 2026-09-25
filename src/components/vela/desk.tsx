@@ -23,6 +23,7 @@ export function Desk() {
   const receipts = useDesk((s) => s.receipts);
   const rules = useDesk((s) => s.rules);
   const month = useDesk((s) => s.month);
+  const settled = useDesk((s) => s.settled);
   const openSlip = useDesk((s) => s.openSlip);
   const openDrawer = useDesk((s) => s.openDrawer);
   const setView = useDesk((s) => s.setView);
@@ -69,7 +70,9 @@ export function Desk() {
         </div>
         <div className="relative z-10 h-56 min-w-0">
           {bars.length === 0 ? (
-            <p className="text-sm text-muted">No slips in {monthLabel(month, "long")} yet.</p>
+            <p className="text-sm text-muted">
+              {settled ? `No slips in ${monthLabel(month, "long")} yet.` : "Bringing your slips…"}
+            </p>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={bars} layout="vertical" margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>

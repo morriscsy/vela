@@ -40,7 +40,13 @@ export const readReceipt = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }): Promise<ReadResult> => {
     const apiKey = process.env.XAI_API_KEY;
-    if (!apiKey) return { ok: false, error: "The reader isn't available right now. Fill the fields yourself." };
+    if (!apiKey) {
+      return {
+        ok: false,
+        error:
+          "Photo reading isn't switched on for this site yet. In Vercel, open this project, then Settings, then Environment Variables, add XAI_API_KEY, and redeploy. You can still type the slip in.",
+      };
+    }
 
     const prompt = `Extract one receipt, invoice, or bill from the image. Return only JSON with this shape:
 {"merchant":string,"place":string,"date":"YYYY-MM-DD"|null,"currency":string,"subtotal":number|null,"tax":number|null,"tip":number|null,"total":number|null,"payment":"card"|"cash"|"octopus"|"fps"|"other"|null,"category":"dining"|"groceries"|"transit"|"travel"|"office"|"health"|"shopping"|"utilities"|"entertainment"|"other","lineItems":[{"name":string,"qty":number,"amount":number}],"confidence":number,"notes":string}

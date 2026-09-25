@@ -1,5 +1,4 @@
 import { isoDaysAgo, lineSum, type CategoryId, type DrawerId, type LineItem, type PaymentId, type Receipt, type SlipStatus } from "@/lib/receipts/model";
-import { paintSlip } from "@/lib/receipts/paper";
 
 type Seed = {
   id: string;
@@ -243,21 +242,9 @@ export function buildSamples(): Receipt[] {
     const subtotal = lineSum(seed.lineItems);
     const total = Math.round((subtotal + seed.tax + seed.tip) * 100) / 100;
     const date = isoDaysAgo(seed.daysAgo);
-    const image = paintSlip({
-      merchant: seed.merchant,
-      place: seed.place,
-      date,
-      currency: "HKD",
-      lineItems: seed.lineItems,
-      subtotal,
-      tax: seed.tax,
-      tip: seed.tip,
-      total,
-      payment: seed.payment,
-    });
     return {
       id: seed.id,
-      image: image || null,
+      image: null,
       merchant: seed.merchant,
       place: seed.place,
       date,
